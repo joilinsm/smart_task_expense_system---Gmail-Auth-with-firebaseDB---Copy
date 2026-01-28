@@ -2,6 +2,7 @@
 Configuration file for Smart Task & Expense Intelligence System
 """
 import os
+import sys
 
 # Load environment variables from .env file if it exists
 try:
@@ -15,12 +16,17 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     """Base configuration"""
-    # Secret key for session management
-    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    # Secret key for session management - NO FALLBACK IN PRODUCTION
+    _secret_key = os.getenv('SECRET_KEY')
+    if not _secret_key and os.getenv('FLASK_ENV') == 'production':
+        print("\n❌ CRITICAL: SECRET_KEY environment variable is required in production!")
+        print("   Set it in Render → Settings → Environment Variables")
+        print("   Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\"\n")
+        sys.exit(1)
+    SECRET_KEY = _secret_key or 'dev-secret-key-change-in-production'
     
     # Database configuration
     # Firebase configuration - Use Firestore (Cloud Firestore)
-    # Set DATABASE_URI to 'firebase' to use Firestore instead of SQLite/MySQL
     FIREBASE_ENABLED = os.getenv('FIREBASE_ENABLED', 'True') == 'True'
     FIREBASE_CONFIG = {
         'type': os.getenv('FIREBASE_TYPE', 'service_account'),
@@ -38,43 +44,34 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session configuration
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    SESSION_COOKIE_SECURE = os.getenv('FLASK_ENV') == 'production'  # Auto-set based on environment
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     PERMANENT_SESSION_LIFETIME = 86400  # 24 hours
     
     # Email Configuration (Flask-Mail with SMTP)
     # SMTP Server Settings
-    MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')  # Gmail SMTP server
-    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))  # TLS port for Gmail
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'  # Enable TLS
-    MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'False') == 'True'  # SSL disabled for TLS
+    MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'
+    MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'False') == 'True'
     
-    # Email Credentials - SET THESE TO ENABLE EMAIL SENDING
-    # Option 1: Set environment variables MAIL_USERNAME and MAIL_PASSWORD
-    # Option 2: Replace empty strings below with your actual credentials
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'externalverseforu@gmail.com')  # Your email address
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'ouil rgry mevx awzi')  # Gmail App Password
-    
-    # Sender email address
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME', 'noreply@taskexpense.com'))
+    # Email Credentials - NO HARDCODED FALLBACKS
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
     
     # Additional settings
     MAIL_MAX_EMAILS = None
     MAIL_ASCII_ATTACHMENTS = False
-    MAIL_SUPPRESS_SEND = False  # Set to True to disable email sending in testing
-    
-    # Gmail App Password Instructions:
-    # 1. Enable 2-Step Verification on your Google Account
-    # 2. Go to: https://myaccount.google.com/apppasswords
-    # 3. Generate an App Password for "Mail"
-    # 4. Use the 16-character password as MAIL_PASSWORD
+    MAIL_SUPPRESS_SEND = False
     
     # Notification Settings
     ENABLE_DEADLINE_NOTIFICATIONS = os.getenv('ENABLE_DEADLINE_NOTIFICATIONS', 'True') == 'True'
-    NOTIFICATION_CHECK_INTERVAL = int(os.getenv('NOTIFICATION_CHECK_INTERVAL', '3600'))  # 1 hour in seconds
-    TASK_DEADLINE_HOURS_BEFORE = int(os.getenv('TASK_DEADLINE_HOURS_BEFORE', '24'))  # Notify 24 hours before
-    HABIT_DEADLINE_HOURS_BEFORE = int(os.getenv('HABIT_DEADLINE_HOURS_BEFORE', '1'))  # Notify 1 hour before
+    NOTIFICATION_CHECK_INTERVAL = int(os.getenv('NOTIFICATION_CHECK_INTERVAL', '3600'))
+    TASK_DEADLINE_HOURS_BEFORE = int(os.getenv('TASK_DEADLINE_HOURS_BEFORE', '24'))
+    HABIT_DEADLINE_HOURS_BEFORE = int(os.getenv('HABIT_DEADLINE_HOURS_BEFORE', '1'))
+
 
 
 class DevelopmentConfig(Config):

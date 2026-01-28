@@ -34,7 +34,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template, redirect, url_for
 from flask_login import LoginManager, current_user
-from config import DevelopmentConfig as config
+from config import DevelopmentConfig, ProductionConfig
+
+# Use ProductionConfig on Render, DevelopmentConfig locally
+environment = os.getenv('FLASK_ENV', 'development')
+if environment == 'production':
+    config = ProductionConfig
+else:
+    config = DevelopmentConfig
+    
+print(f"🔧 Using {environment.upper()} configuration")
+print(f"   DEBUG: {config.DEBUG}")
+print(f"   SESSION_COOKIE_SECURE: {config.SESSION_COOKIE_SECURE}")
+
 
 # Import Firebase database and models
 from firebase_db import firebase_db
