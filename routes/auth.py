@@ -68,10 +68,20 @@ def register():
             session['pending_verification_user_id'] = new_user.id
             
             # Send OTP email
-            if send_otp_email(new_user.email, new_user.username, otp_code):
+            email_sent = send_otp_email(new_user.email, new_user.username, otp_code)
+            
+            if email_sent:
                 flash('Registration successful! Please check your email for the verification code.', 'success')
             else:
-                flash('Registration successful! Verification code has been generated. Check console in debug mode.', 'warning')
+                # Email failed - show OTP in message for debugging
+                flash(f'Registration successful! Email sending failed. OTP Code for testing: {otp_code} (Check Render logs for details)', 'warning')
+                print(f"\n{'='*70}")
+                print(f"⚠️ EMAIL NOT SENT - OTP FOR TESTING")
+                print(f"{'='*70}")
+                print(f"User: {new_user.username}")
+                print(f"Email: {new_user.email}")
+                print(f"OTP Code: {otp_code}")
+                print(f"{'='*70}\n")
             
             return redirect(url_for('auth.verify_email'))
         except Exception as e:
