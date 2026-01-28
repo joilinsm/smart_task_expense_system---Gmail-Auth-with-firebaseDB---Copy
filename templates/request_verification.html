@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Email Verification - Smart Task & Expense System{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark text-center">
+                    <h4 class="mb-0">⚠️ Email Verification Required</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-warning">
+                        <strong>📧 Your email is not verified!</strong><br>
+                        Please verify your email address to ensure account security and access all features.
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>Why verify your email?</h5>
+                        <ul>
+                            <li>✓ Secure your account</li>
+                            <li>✓ Recover your password if needed</li>
+                            <li>✓ Receive important notifications</li>
+                            <li>✓ Access all premium features</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Email:</strong> {{ current_user.email }}
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.request_verification') }}">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                📨 Send Verification Code
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <a href="{{ url_for('dashboard.index') }}" class="btn btn-link">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

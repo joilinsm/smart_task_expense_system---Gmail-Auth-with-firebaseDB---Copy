@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if expense %}Edit Expense{% else %}Record Expense{% endif %} - Smart Task & Expense System
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">
+                        {% if expense %}💰 Edit Expense{% else %}➕ Record New Expense{% endif %}
+                    </h3>
+                </div>
+                <div class="card-body p-5">
+                    <form method="POST" novalidate>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount ($) *</label>
+                            <input type="number" class="form-control form-control-lg" id="amount" name="amount" 
+                                   step="0.01" min="0" value="{{ expense.amount if expense else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category *</label>
+                            <select class="form-select form-select-lg" id="category" name="category" required onchange="toggleExpenseCustomCategory()">
+                                <option value="">Select a category</option>
+                                {% for category in Expense.CATEGORIES %}
+                                <option value="{{ category }}" {% if expense and expense.category == category %}selected{% elif not expense and category == 'Food & Dining' %}selected{% endif %}>
+                                    {{ category }}
+                                </option>
+                                {% endfor %}
+                                <option value="__custom__">➕ Add Custom Category</option>
+                            </select>
+                            <input type="text" class="form-control form-control-lg mt-2" id="category_custom" name="category_custom" 
+                                   placeholder="Enter custom category" style="display:none;"
+                                   value="{% if expense and expense.category not in Expense.CATEGORIES %}{{ expense.category }}{% endif %}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date & Time</label>
+                            <input type="datetime-local" class="form-control form-control-lg" id="date" name="date"
+                                   value="{% if expense and expense.date %}{{ expense.date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                            <small class="text-muted">Leave blank for current date/time</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" placeholder="Add any notes or details about this expense...">{{ expense.description if expense else '' }}</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                {% if expense %}💾 Update Expense{% else %}➕ Record Expense{% endif %}
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if expense %}
+                    <hr class="my-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('expenses.index') }}" class="btn btn-outline-secondary w-100">← Back to Expenses</a>
+                        </div>
+                        <div class="col-md-6">
+                            <form method="POST" action="{{ url_for('expenses.delete', expense_id=expense.id) }}" style="display:inline-block; width:100%;">
+                                <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Delete this expense?')">🗑️ Delete Expense</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleExpenseCustomCategory() {
+    const categorySelect = document.getElementById('category');
+    const customInput = document.getElementById('category_custom');
+    
+    if (categorySelect.value === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+    }
+}
+
+// Check on page load if custom category should be shown
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category');
+    const customInput = document.getElementById('category_custom');
+    if (customInput.value && customInput.value.trim()) {
+        categorySelect.value = '__custom__';
+        customInput.style.display = 'block';
+    }
+});
+
+// Handle form submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    const categorySelect = document.getElementById('category');
+    const customInput = document.getElementById('category_custom');
+    
+    if (categorySelect.value === '__custom__') {
+        if (!customInput.value.trim()) {
+            e.preventDefault();
+            alert('Please enter a custom category!');
+            customInput.focus();
+            return;
+        }
+        // Set the category to the custom value
+        categorySelect.value = customInput.value.trim();
+    }
+});
+</script>
+{% endblock %}

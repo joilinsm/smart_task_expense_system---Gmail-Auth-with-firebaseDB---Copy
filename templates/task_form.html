@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if task %}Edit Task{% else %}Create Task{% endif %} - Smart Task & Expense System
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        {% if task %}✏️ Edit Task{% else %}➕ Create New Task{% endif %}
+                    </h3>
+                </div>
+                <div class="card-body p-5">
+                    <form method="POST" novalidate>
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Task Title *</label>
+                            <input type="text" class="form-control form-control-lg" id="title" name="title" 
+                                   value="{{ task.title if task else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="4">{{ task.description if task else '' }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">Priority *</label>
+                                    <select class="form-select" id="priority" name="priority" required>
+                                        <option value="Low" {% if task and task.priority == 'Low' %}selected{% elif not task %}{% endif %}>🟢 Low</option>
+                                        <option value="Medium" {% if task and task.priority == 'Medium' %}selected{% elif not task %}selected{% endif %}>🟡 Medium</option>
+                                        <option value="High" {% if task and task.priority == 'High' %}selected{% endif %}>🔴 High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Category *</label>
+                                    <div class="input-group">
+                                        <select class="form-select" id="category" name="category" required onchange="toggleTaskCustomCategory()">
+                                            <option value="">Select a category</option>
+                                            {% for category in Task.CATEGORIES %}
+                                            <option value="{{ category }}" {% if task and task.category == category %}selected{% elif not task and category == 'Work' %}selected{% endif %}>
+                                                {{ category }}
+                                            </option>
+                                            {% endfor %}
+                                            <option value="__custom__">➕ Add Custom Category</option>
+                                        </select>
+                                    </div>
+                                    <input type="text" class="form-control mt-2" id="category_custom" name="category_custom" 
+                                           placeholder="Enter custom category" style="display:none;"
+                                           value="{% if task and task.category not in Task.CATEGORIES %}{{ task.category }}{% endif %}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="deadline" class="form-label">Deadline (Optional)</label>
+                                    <input type="datetime-local" class="form-control" id="deadline" name="deadline"
+                                           value="{% if task and task.deadline %}{{ task.deadline.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                                </div>
+                            </div>
+                            {% if task %}
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status *</label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        <option value="Pending" {% if task.status == 'Pending' %}selected{% endif %}>⏳ Pending</option>
+                                        <option value="Completed" {% if task.status == 'Completed' %}selected{% endif %}>✓ Completed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {% else %}
+                            <input type="hidden" name="status" value="Pending">
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                {% if task %}💾 Update Task{% else %}➕ Create Task{% endif %}
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if task %}
+                    <hr class="my-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('tasks.index') }}" class="btn btn-outline-secondary w-100">← Back to Tasks</a>
+                        </div>
+                        <div class="col-md-6">
+                            <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline-block; width:100%;">
+                                <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Delete this task?')">🗑️ Delete Task</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleTaskCustomCategory() {
+    const categorySelect = document.getElementById('category');
+    const customInput = document.getElementById('category_custom');
+    
+    if (categorySelect.value === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+    }
+}
+
+// Check on page load if custom category should be shown
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category');
+    const customInput = document.getElementById('category_custom');
+    if (customInput.value && customInput.value.trim()) {
+        categorySelect.value = '__custom__';
+        customInput.style.display = 'block';
+    }
+});
+
+// Handle form submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    const categorySelect = document.getElementById('category');
+    const customInput = document.getElementById('category_custom');
+    
+    if (categorySelect.value === '__custom__') {
+        if (!customInput.value.trim()) {
+            e.preventDefault();
+            alert('Please enter a custom category!');
+            customInput.focus();
+            return;
+        }
+        // Set the category to the custom value
+        categorySelect.value = customInput.value.trim();
+    }
+});
+</script>
+{% endblock %}

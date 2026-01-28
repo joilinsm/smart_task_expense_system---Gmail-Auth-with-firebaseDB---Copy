@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Profile | Smart Task & Expense{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="mb-0">Profile</h5>
+                    <small class="text-white-50">Your account information</small>
+                </div>
+                <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-light btn-sm">Edit Profile</a>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Name</p>
+                        <p class="fw-bold">{{ user.first_name or 'First' }} {{ user.last_name or 'Last' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Username</p>
+                        <p class="fw-bold">{{ user.username }}</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Email</p>
+                        <p class="fw-bold">
+                            {{ user.email }}
+                            {% if user.email_verified %}
+                                <span class="badge bg-success">✓ Verified</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">⚠ Not Verified</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Member Since</p>
+                        <p class="fw-bold">{{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'N/A' }}</p>
+                    </div>
+                </div>
+                {% if user.phone_number %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted">Phone Number</p>
+                        <p class="fw-bold">{{ user.country_code }} {{ user.phone_number }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                {% if not user.email_verified %}
+                <div class="alert alert-warning">
+                    <strong>⚠️ Email not verified!</strong> 
+                    <a href="{{ url_for('auth.request_verification') }}" class="alert-link">Verify your email</a> to secure your account.
+                </div>
+                {% endif %}
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-primary" href="{{ url_for('profile.manage_preferences') }}">Edit Preferences</a>
+                    <a class="btn btn-outline-secondary" href="{{ url_for('profile.change_password') }}">Change Password</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light fw-bold">Preferences</div>
+            <div class="card-body">
+                <p class="mb-1 text-muted">Default Task Priority</p>
+                <p class="fw-bold">{{ user.default_task_priority }}</p>
+
+                <p class="mb-1 text-muted">Monthly Budget</p>
+                <p class="fw-bold">₹{{ '%.2f'|format(user.monthly_budget or 0) }}</p>
+
+                <p class="mb-1 text-muted">Theme</p>
+                <p class="fw-bold text-capitalize">{{ user.theme_preference }}</p>
+
+                <p class="mb-1 text-muted">Notifications</p>
+                <p class="fw-bold">{{ 'Enabled' if user.notification_enabled else 'Disabled' }}</p>
+
+                <a class="btn btn-primary w-100" href="{{ url_for('profile.manage_preferences') }}">Update Preferences</a>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header bg-light fw-bold">Security</div>
+            <div class="card-body">
+                <p class="mb-2">Keep your account secure by using a strong password.</p>
+                <a class="btn btn-outline-danger w-100" href="{{ url_for('profile.change_password') }}">Change Password</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Smart Task & Expense System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-5 fw-bold text-primary">📊 Dashboard</h1>
+            <p class="text-muted">Welcome, <strong>{{ current_user.first_name or current_user.username }}</strong>!</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('tasks.create') }}" class="btn btn-primary btn-lg">➕ Add Task</a>
+            <a href="{{ url_for('expenses.create') }}" class="btn btn-success btn-lg">➕ Add Expense</a>
+        </div>
+    </div>
+
+    <!-- Key Statistics Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary bg-light">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">✓ Tasks</h5>
+                    <h2 class="card-text">{{ total_tasks }}</h2>
+                    <small class="text-muted">{{ completed_tasks }} completed</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning bg-light">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">⏳ Pending</h5>
+                    <h2 class="card-text">{{ pending_tasks }}</h2>
+                    <small class="text-muted">{{ overdue_tasks }} overdue</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success bg-light">
+                <div class="card-body">
+                    <h5 class="card-title text-success">💰 Expenses</h5>
+                    <h2 class="card-text">₹{{ "%.2f"|format(current_month_total) }}</h2>
+                    <small class="text-muted">This month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info bg-light">
+                <div class="card-body">
+                    <h5 class="card-title text-info">📈 Total Spent</h5>
+                    <h2 class="card-text">₹{{ "%.2f"|format(total_expenses) }}</h2>
+                    <small class="text-muted">All time</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Habits Row -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📅 Daily Habits</h5>
+                </div>
+                <div class="card-body">
+                    {% if daily_habits %}
+                        <div class="row">
+                            {% for habit in daily_habits %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card border-success h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <h6 class="card-title mb-0">{{ habit.title }}</h6>
+                                                    <small class="text-muted">{{ habit.category }}</small>
+                                                </div>
+                                                <span class="badge bg-{% if habit.is_completed_today() %}success{% else %}secondary{% endif %}">
+                                                    {% if habit.is_completed_today() %}✓ Done{% else %}⭕ Pending{% endif %}
+                                                </span>
+                                            </div>
+                                            <p class="card-text small">{{ habit.description }}</p>
+                                            <div class="row text-center mb-3">
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Current Streak</small>
+                                                    <h5 class="text-success mb-0">🔥 {{ habit.current_streak }}</h5>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Longest Streak</small>
+                                                    <h5 class="text-info mb-0">⭐ {{ habit.longest_streak }}</h5>
+                                                </div>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 10px;">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: {{ habit.get_completion_percentage() }}%;" 
+                                                     aria-valuenow="{{ habit.get_completion_percentage() }}" 
+                                                     aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <small class="text-muted">{{ "%.0f"|format(habit.get_completion_percentage()) }}% completion</small>
+                                            {% if not habit.is_completed_today() %}
+                                                <div class="mt-2">
+                                                    <button onclick="markHabitCompleteDashboard('{{ habit.id }}', this)" class="btn btn-sm btn-success w-100">Mark Complete Today</button>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No daily habits yet. <a href="{{ url_for('habits.create') }}">Create one</a> to get started!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Prediction & Insights Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-{% if risk_prediction.risk_level == 'High' %}danger{% elif risk_prediction.risk_level == 'Medium' %}warning{% else %}success{% endif %}">
+                <div class="card-header bg-{% if risk_prediction.risk_level == 'High' %}danger{% elif risk_prediction.risk_level == 'Medium' %}warning{% else %}success{% endif %} text-white">
+                    <h5 class="mb-0">⚠️ Risk Assessment</h5>
+                </div>
+                <div class="card-body">
+                    <h4 class="text-{% if risk_prediction.risk_level == 'High' %}danger{% elif risk_prediction.risk_level == 'Medium' %}warning{% else %}success{% endif %}">
+                        {{ risk_prediction.risk_level }} Risk
+                    </h4>
+                    <p class="card-text">{{ risk_prediction.explanation }}</p>
+                    {% if risk_prediction.metrics %}
+                    <hr>
+                    <small class="text-muted">
+                        <strong>Metrics:</strong><br>
+                        • Overdue Tasks: {{ risk_prediction.metrics.overdue_tasks }}<br>
+                        • Last 30d Spending: ₹{{ risk_prediction.metrics.last_30d_spending }}<br>
+                        • Remaining Balance: ₹{{ risk_prediction.metrics.remaining_balance }}<br>
+                        • Risk Score: {{ risk_prediction.metrics.risk_score }}/5
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🎯 Upcoming Tasks</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_tasks %}
+                        <ul class="list-group list-group-flush">
+                            {% for task in upcoming_tasks %}
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-0">{{ task.title }}</h6>
+                                        <small class="text-muted">
+                                            {% if task.days_until_deadline() %}
+                                                Due in {{ task.days_until_deadline() }} days
+                                            {% else %}
+                                                Due today
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %}">
+                                        {{ task.priority }}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No upcoming tasks. Great job!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Tasks by Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="taskChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Tasks by Priority</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Expenses by Category</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="expenseCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Monthly Expense Trend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="expenseTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insights Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🤖 AI Insights & Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-primary fw-bold">📌 Task Insights</h6>
+                            <ul class="list-unstyled">
+                                {% for insight in task_insights %}
+                                    <li class="mb-2"><small>{{ insight }}</small></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-success fw-bold">💸 Expense Insights</h6>
+                            <ul class="list-unstyled">
+                                {% for insight in expense_insights %}
+                                    <li class="mb-2"><small>{{ insight }}</small></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-info fw-bold">🎯 Combined Analysis</h6>
+                            <ul class="list-unstyled">
+                                {% for insight in combined_insights %}
+                                    <li class="mb-2"><small>{{ insight }}</small></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Configuration Scripts -->
+<script>
+    // Task Status Chart
+    const taskCtx = document.getElementById('taskChart').getContext('2d');
+    const taskChart = new Chart(taskCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Pending'],
+            datasets: [{
+                data: [{{ completed_tasks }}, {{ pending_tasks }}],
+                backgroundColor: ['#28a745', '#ffc107'],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Priority Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    const priorityChart = new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['High', 'Medium', 'Low'],
+            datasets: [{
+                label: 'Tasks',
+                data: [{{ high_priority }}, {{ medium_priority }}, {{ low_priority }}],
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8'],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Expense Category Chart
+    fetch('{{ url_for("dashboard.expense_stats") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.categories || data.categories.length === 0) {
+                document.getElementById('expenseCategoryChart').parentElement.innerHTML = '<p class="text-muted text-center py-4">No expenses recorded yet. Start by adding an expense!</p>';
+                return;
+            }
+            const expenseCtx = document.getElementById('expenseCategoryChart').getContext('2d');
+            new Chart(expenseCtx, {
+                type: 'pie',
+                data: {
+                    labels: data.categories,
+                    datasets: [{
+                        data: data.amounts,
+                        backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1', '#fd7e14'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading expense stats:', error);
+            document.getElementById('expenseCategoryChart').parentElement.innerHTML = '<p class="text-danger text-center py-4">Error loading expense data</p>';
+        });
+
+    // Monthly Expense Trend Chart
+    fetch('{{ url_for("dashboard.monthly_trend") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.months || data.months.length === 0) {
+                document.getElementById('expenseTrendChart').parentElement.innerHTML = '<p class="text-muted text-center py-4">No expense history available yet.</p>';
+                return;
+            }
+            const trendCtx = document.getElementById('expenseTrendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: data.months,
+                    datasets: [{
+                        label: 'Spending ($)',
+                        data: data.amounts,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading monthly trends:', error);
+            document.getElementById('expenseTrendChart').parentElement.innerHTML = '<p class="text-danger text-center py-4">Error loading trend data</p>';
+        });
+
+    // Mark habit complete on dashboard
+    function markHabitCompleteDashboard(habitId, button) {
+        fetch(`/habits/${habitId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                button.disabled = true;
+                button.textContent = '✓ Completed!';
+                button.classList.remove('btn-success');
+                button.classList.add('btn-secondary');
+                
+                // Show success alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                alertDiv.style.zIndex = '9999';
+                alertDiv.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(alertDiv);
+                
+                // Auto-dismiss after 3 seconds and reload
+                setTimeout(() => {
+                    alertDiv.remove();
+                    location.reload();
+                }, 3000);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to mark habit complete');
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Tasks - Smart Task & Expense System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold text-primary">✓ Task Management</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('tasks.create') }}" class="btn btn-primary btn-lg">➕ Add New Task</a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Status</label>
+                            <form method="GET" class="d-flex gap-2">
+                                <select class="form-select" name="status" onchange="this.form.submit()">
+                                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                                    <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                                </select>
+                                <input type="hidden" name="priority" value="{{ priority_filter }}">
+                            </form>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Filter by Priority</label>
+                            <form method="GET" class="d-flex gap-2">
+                                <select class="form-select" name="priority" onchange="this.form.submit()">
+                                    <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All Priorities</option>
+                                    <option value="High" {% if priority_filter == 'High' %}selected{% endif %}>🔴 High</option>
+                                    <option value="Medium" {% if priority_filter == 'Medium' %}selected{% endif %}>🟡 Medium</option>
+                                    <option value="Low" {% if priority_filter == 'Low' %}selected{% endif %}>🟢 Low</option>
+                                </select>
+                                <input type="hidden" name="status" value="{{ status_filter }}">
+                            </form>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted">
+                                <strong>Total Tasks:</strong> {{ tasks|length }} | 
+                                <strong>Overdue:</strong> {{ overdue_tasks|length }} |
+                                <strong>Completed:</strong> {{ completed_tasks|length }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue Tasks Section -->
+    {% if overdue_tasks %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-danger shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">⚠️ Overdue Tasks ({{ overdue_tasks|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for task in overdue_tasks %}
+                        <div class="list-group-item">
+                            <div class="row align-items-center">
+                                <div class="col-1">
+                                    <input type="checkbox" class="form-check-input" id="task-{{ task.id }}" style="cursor: pointer; width: 20px; height: 20px;" onclick="toggleTaskStatus({{ task.id }})">
+                                </div>
+                                <div class="col-md-7">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <p class="text-muted mb-0 small">{{ task.description }}</p>
+                                    <small class="text-danger">
+                                        <strong>Deadline:</strong> {{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'N/A' }}
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %} me-2">
+                                        {{ task.priority }}
+                                    </span>
+                                    <span class="badge bg-secondary">{{ task.category }}</span>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this task?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending Tasks Section -->
+    {% if pending_tasks %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">⏳ Pending Tasks ({{ pending_tasks|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for task in pending_tasks %}
+                        <div class="list-group-item">
+                            <div class="row align-items-center">
+                                <div class="col-1">
+                                    <input type="checkbox" class="form-check-input" id="task-{{ task.id }}" style="cursor: pointer; width: 20px; height: 20px;" onclick="toggleTaskStatus({{ task.id }})">
+                                </div>
+                                <div class="col-md-7">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <p class="text-muted mb-0 small">{{ task.description }}</p>
+                                    <small class="text-muted">
+                                        <strong>Deadline:</strong> {{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'No deadline' }}
+                                        {% if task.deadline %}
+                                            ({{ task.days_until_deadline() }} days remaining)
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}success{% endif %} me-2">
+                                        {{ task.priority }}
+                                    </span>
+                                    <span class="badge bg-secondary">{{ task.category }}</span>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this task?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Completed Tasks Section -->
+    {% if completed_tasks %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">✓ Completed Tasks ({{ completed_tasks|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for task in completed_tasks %}
+                        <div class="list-group-item text-muted" style="opacity: 0.7;">
+                            <div class="row align-items-center">
+                                <div class="col-1">
+                                    <input type="checkbox" class="form-check-input" id="task-{{ task.id }}" checked style="cursor: pointer; width: 20px; height: 20px;" onclick="toggleTaskStatus({{ task.id }})">
+                                </div>
+                                <div class="col-md-7">
+                                    <h6 class="mb-1" style="text-decoration: line-through;">{{ task.title }}</h6>
+                                    <small>Completed on: {{ task.completed_at.strftime('%Y-%m-%d') if task.completed_at else 'Unknown' }}</small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <span class="badge bg-secondary">{{ task.category }}</span>
+                                    <div class="mt-2">
+                                        <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this task?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Tasks Message -->
+    {% if not tasks %}
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">No tasks found!</h4>
+        <p>Start by creating a new task to track your work and productivity.</p>
+        <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">Create First Task</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleTaskStatus(taskId) {
+    fetch(`/tasks/${taskId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.innerHTML = `
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+            
+            // Reload page after 1 second
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            alert('Error toggling task status: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to toggle task status');
+    });
+}
+</script>
+{% endblock %}

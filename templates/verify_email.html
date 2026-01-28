@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Email - Smart Task & Expense System{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">📧 Verify Your Email</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info">
+                        <strong>📨 Check your email!</strong><br>
+                        We've sent a 6-digit verification code to <strong>{{ user.email }}</strong>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.verify_email') }}">
+                        <div class="mb-3">
+                            <label for="otp_code" class="form-label">Enter Verification Code</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="otp_code" 
+                                   name="otp_code" 
+                                   placeholder="000000"
+                                   maxlength="6"
+                                   pattern="[0-9]{6}"
+                                   required
+                                   autofocus
+                                   style="letter-spacing: 10px; font-size: 24px;">
+                            <small class="form-text text-muted">
+                                Enter the 6-digit code sent to your email
+                            </small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                ✓ Verify Email
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Didn't receive the code?</p>
+                        <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="display: inline;">
+                            <button type="submit" class="btn btn-link">
+                                🔄 Resend Code
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <small>
+                            <strong>⏰ Important:</strong> The verification code expires in 10 minutes.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <p class="text-muted">
+                    Wrong email address? <a href="{{ url_for('auth.register') }}">Register again</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-focus and format OTP input
+    document.getElementById('otp_code').addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+</script>
+{% endblock %}
