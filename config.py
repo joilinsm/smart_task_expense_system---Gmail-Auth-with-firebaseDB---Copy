@@ -56,10 +56,10 @@ class Config:
     MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'
     MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'False') == 'True'
     
-    # Email Credentials - NO HARDCODED FALLBACKS
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
+    # Email Credentials - Allow fallback in development only
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'externalverseforu@gmail.com' if os.getenv('FLASK_ENV') != 'production' else None)
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'ouil rgry mevx awzi' if os.getenv('FLASK_ENV') != 'production' else None)
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME') or 'noreply@taskexpense.com')
     
     # Additional settings
     MAIL_MAX_EMAILS = None
