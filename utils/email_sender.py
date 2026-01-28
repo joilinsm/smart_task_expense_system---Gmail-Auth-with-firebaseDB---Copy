@@ -28,8 +28,23 @@ def send_otp_email(user_email, username, otp_code):
         mail_password = current_app.config.get('MAIL_PASSWORD')
         mail_sender = current_app.config.get('MAIL_DEFAULT_SENDER', mail_username)
         
+        # Debug: Check if credentials are set
+        print(f"\n{'='*60}")
+        print(f"📧 SENDING OTP EMAIL")
+        print(f"{'='*60}")
+        print(f"MAIL_SERVER: {mail_server}")
+        print(f"MAIL_PORT: {mail_port}")
+        print(f"MAIL_USERNAME: {'SET ✅' if mail_username else '❌ NOT SET'}")
+        print(f"MAIL_PASSWORD: {'SET ✅' if mail_password else '❌ NOT SET'}")
+        print(f"Recipient: {user_email}")
+        print(f"Username: {username}")
+        print(f"OTP Code: {otp_code}")
+        print(f"{'='*60}\n")
+        
         if not mail_username or not mail_password:
-            raise Exception("Email credentials not configured")
+            error_msg = "❌ EMAIL CREDENTIALS NOT CONFIGURED\nAdd MAIL_USERNAME and MAIL_PASSWORD to Render environment variables"
+            print(error_msg)
+            raise Exception(error_msg)
         
         # Create message
         msg = MIMEMultipart('alternative')
@@ -103,22 +118,37 @@ Smart Task & Expense Team
             server.login(mail_username, mail_password)
             server.send_message(msg)
         
+        # Success message
+        print(f"\n{'='*60}")
+        print(f"✅ EMAIL SENT SUCCESSFULLY!")
+        print(f"{'='*60}")
+        print(f"To: {user_email}")
+        print(f"OTP Code: {otp_code}")
+        print(f"User: {username}")
+        print(f"{'='*60}\n")
+        
         logging.info(f"OTP email sent successfully to {user_email}")
         return True
     
     except Exception as e:
-        logging.error(f"Failed to send OTP email to {user_email}: {str(e)}")
+        error_msg = str(e)
+        logging.error(f"Failed to send OTP email to {user_email}: {error_msg}")
         print(f"\n{'='*60}")
-        print(f"⚠️ EMAIL SENDING FAILED: {str(e)}")
+        print(f"❌ EMAIL SENDING FAILED")
+        print(f"{'='*60}")
+        print(f"Error: {error_msg}")
+        print(f"Recipient: {user_email}")
         print(f"{'='*60}\n")
-        # In development, print OTP to console
+        
+        # In development, print OTP to console for testing
         if current_app.config.get('DEBUG'):
             print(f"\n{'='*60}")
-            print(f"🔐 DEBUG MODE - OTP VERIFICATION CODE")
+            print(f"🔐 DEBUG MODE - OTP VERIFICATION CODE (EMAIL FAILED)")
             print(f"{'='*60}")
-            print(f"For: {username} ({user_email})")
+            print(f"User: {username} ({user_email})")
             print(f"OTP CODE: {otp_code}")
-            print(f"Valid for: 10 minutes")
+            print(f"Valid for: 10 minutes (600 seconds)")
+            print(f"Note: Use this code to test email verification")
             print(f"{'='*60}\n")
         return False
 
