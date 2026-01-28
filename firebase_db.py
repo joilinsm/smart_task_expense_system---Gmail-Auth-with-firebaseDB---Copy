@@ -53,15 +53,24 @@ class FirebaseDB:
             try:
                 # Check if Firebase is already initialized
                 firebase_admin.get_app()
+                print("✅ Firebase already initialized!")
             except ValueError:
                 # Firebase not initialized, initialize it
                 firebase_creds = self._get_firebase_credentials()
                 
                 if firebase_creds:
-                    cred = credentials.Certificate(firebase_creds)
-                    firebase_admin.initialize_app(cred)
-                    print("✅ Firebase initialized successfully!")
+                    try:
+                        cred = credentials.Certificate(firebase_creds)
+                        firebase_admin.initialize_app(cred)
+                        print("✅ Firebase initialized successfully!")
+                    except Exception as e:
+                        print(f"❌ Firebase initialization error: {e}")
+                        raise
                 else:
+                    print("⚠️ Firebase credentials not found. Checking environment variables:")
+                    print(f"   FIREBASE_PROJECT_ID: {os.getenv('FIREBASE_PROJECT_ID', 'NOT SET')}")
+                    print(f"   FIREBASE_CLIENT_EMAIL: {os.getenv('FIREBASE_CLIENT_EMAIL', 'NOT SET')}")
+                    print(f"   FIREBASE_PRIVATE_KEY: {'SET' if os.getenv('FIREBASE_PRIVATE_KEY') else 'NOT SET'}")
                     raise ValueError("Firebase credentials not configured. See .env setup instructions.")
             
             # Get Firestore client
@@ -283,10 +292,25 @@ class QueryBuilder:
         return len(self.get())
 
 
-# Create global Firebase instance
-firebase_db = FirebaseDB()
+# Global Firebase instance (lazy initialization)
+_firebase_db_instance = None
 
-# Export for use in app
 def get_firebase_db():
-    """Get Firebase database instance"""
-    return firebase_db.db
+    """Get Firebase database instance (lazy initialization)"""
+    global _firebase_db_instance
+    if _firebase_db_instance is None:
+        _firebase_db_instance = FirebaseDB()
+    return _firebase_db_instance.db
+
+# Lazy singleton for backward compatibility
+class _LazyFirebaseDB:
+    """Lazy wrapper for FirebaseDB - initializes only when accessed"""
+    _instance = None
+    
+    def __getattr__(self, name):
+        global _firebase_db_instance
+        if _firebase_db_instance is None:
+            _firebase_db_instance = FirebaseDB()
+        return getattr(_firebase_db_instance, name)
+
+firebase_db = _LazyFirebaseDB()
