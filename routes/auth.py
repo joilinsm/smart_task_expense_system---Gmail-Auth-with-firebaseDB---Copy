@@ -180,7 +180,7 @@ def verify_email():
         
         if not otp_code:
             flash('Please enter the verification code!', 'error')
-            return redirect(url_for('auth.verify_email'))
+            return render_template('verify_email.html', user=user)
         
         print(f"\n{'='*70}")
         print(f"🔐 OTP VERIFICATION ATTEMPT")
@@ -203,7 +203,7 @@ def verify_email():
             return redirect(url_for('auth.login'))
         else:
             flash('❌ Invalid or expired verification code! Please try again or request a new code.', 'error')
-            return redirect(url_for('auth.verify_email'))
+            return render_template('verify_email.html', user=user)
     
     return render_template('verify_email.html', user=user)
 
