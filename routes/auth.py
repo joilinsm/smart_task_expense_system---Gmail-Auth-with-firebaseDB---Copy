@@ -198,8 +198,9 @@ def verify_email():
             # Clear session
             session.pop('pending_verification_user_id', None)
             
-            flash('✅ Email verified successfully! You can now log in.', 'success')
-            return redirect(url_for('auth.login'))
+            login_user(user, remember=True)
+            flash('✅ Email verified successfully! Welcome to your dashboard.', 'success')
+            return redirect(url_for('dashboard.index'))
         else:
             flash('❌ Invalid or expired verification code! Please try again or request a new code.', 'error')
             return render_template('verify_email.html', user=user)
