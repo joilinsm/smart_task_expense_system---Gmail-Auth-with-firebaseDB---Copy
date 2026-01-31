@@ -124,16 +124,15 @@ def login():
         user = User.query_by_username(username)
         
         if user and user.check_password(password):
-            # Check if email is verified
             if not user.email_verified:
                 # Store user ID for verification redirect
                 session['pending_verification_user_id'] = user.id
                 flash('Please verify your email before logging in. Check your inbox for the verification code.', 'warning')
                 return redirect(url_for('auth.verify_email'))
-            
+
             login_user(user, remember=request.form.get('remember_me'))
             flash(f'Welcome back, {user.first_name or user.username}!', 'success')
-            
+
             # Redirect to next page or dashboard
             next_page = request.args.get('next')
             if next_page and next_page.startswith('/'):
