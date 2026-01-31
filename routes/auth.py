@@ -77,25 +77,20 @@ def register():
             email_sent = send_otp_email(new_user.email, new_user.username, otp_code)
             
             if not email_sent:
-                # Email failed - show error in production, OTP in development
-                if current_app.config.get('DEBUG'):
-                    flash(f'⚠️ Email sending failed. Debug OTP: {otp_code} (Check console logs)', 'warning')
-                    print(f"\n{'='*70}")
-                    print(f"⚠️ REGISTRATION - EMAIL FAILED (DEBUG MODE)")
-                    print(f"{'='*70}")
-                    print(f"User: {new_user.username}")
-                    print(f"Email: {new_user.email}")
-                    print(f"OTP Code: {otp_code}")
-                    print(f"Action: Check SMTP configuration and credentials")
-                    print(f"{'='*70}\n")
-                else:
-                    flash('Registration failed: Unable to send verification email. Please check your email address or try again later.', 'error')
-                    logging.error(f"Production registration failed - email not sent to {new_user.email}")
-                    # In production, delete the user if email fails
-                    new_user.delete()
-                    return redirect(url_for('auth.register'))
+                # Email failed - show OTP in both dev and prod with clear message
+                flash(f'⚠️ Email sending failed! Your OTP code is: {otp_code} (Valid for 10 minutes) - Enter this on verification page', 'warning')
+                print(f"\n{'='*70}")
+                print(f"⚠️ REGISTRATION - EMAIL FAILED")
+                print(f"{'='*70}")
+                print(f"User: {new_user.username}")
+                print(f"Email: {new_user.email}")
+                print(f"OTP Code: {otp_code}")
+                print(f"Action: Check SMTP configuration and credentials in config.py")
+                print(f"{'='*70}\n")
+                logging.error(f"Email not sent to {new_user.email} - User created but not verified")
+            else:
+                flash('✅ Registration successful! OTP sent to your email. Check your inbox or spam folder.', 'success')
             
-            flash('✅ Registration successful! Please check your email for the verification code.', 'success')
             return redirect(url_for('auth.verify_email'))
         except Exception as e:
             flash(f'Error during registration: {str(e)}', 'error')
@@ -239,10 +234,8 @@ def resend_otp():
         if email_sent:
             flash('✅ New verification code sent to your email!', 'success')
         else:
-            if current_app.config.get('DEBUG'):
-                flash(f'⚠️ Email failed. Debug OTP: {otp_code}', 'warning')
-            else:
-                flash('❌ Failed to send verification email. Please try again later.', 'error')
+            flash(f'⚠️ Email sending failed! Your OTP code is: {otp_code} (Valid for 10 minutes)', 'warning')
+            logging.warning(f"Resend OTP email failed for {user.email} - OTP: {otp_code}")
     except Exception as e:
         flash(f'Error sending verification code: {str(e)}', 'error')
     
