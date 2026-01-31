@@ -56,10 +56,21 @@ class Config:
     MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True') == 'True'
     MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'False') == 'True'
     
-    # Email Credentials - Allow fallback in development only
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'externalverseforu@gmail.com' if os.getenv('FLASK_ENV') != 'production' else None)
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'ouil rgry mevx awzi' if os.getenv('FLASK_ENV') != 'production' else None)
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME') or 'noreply@taskexpense.com')
+    # Email Credentials - Require in production, allow fallback in development
+    _mail_username = os.getenv('MAIL_USERNAME')
+    _mail_password = os.getenv('MAIL_PASSWORD')
+    
+    # Validate credentials in production
+    if os.getenv('FLASK_ENV') == 'production':
+        if not _mail_username or not _mail_password:
+            print("\n⚠️ WARNING: MAIL_USERNAME and MAIL_PASSWORD not set in production!")
+            print("   Email functionality will not work.")
+            print("   Set them in Render → Settings → Environment Variables\n")
+    
+    # Set values with development fallbacks
+    MAIL_USERNAME = _mail_username or 'externalverseforu@gmail.com'
+    MAIL_PASSWORD = _mail_password or 'ouil rgry mevx awzi'
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', _mail_username or 'noreply@taskexpense.com')
     
     # Additional settings
     MAIL_MAX_EMAILS = None

@@ -17,7 +17,6 @@ def index():
     """
     # Get filter parameters
     status_filter = request.args.get('status', 'all')
-    priority_filter = request.args.get('priority', 'all')
     
     # Get all tasks for user from Firebase
     tasks = Task.query_by_user(current_user.id)
@@ -25,9 +24,6 @@ def index():
     # Apply filters
     if status_filter != 'all':
         tasks = [t for t in tasks if t.status == status_filter]
-    
-    if priority_filter != 'all':
-        tasks = [t for t in tasks if t.priority == priority_filter]
     
     # Sort by deadline
     tasks = sorted(tasks, key=lambda t: t.deadline or '', reverse=False)
@@ -44,7 +40,6 @@ def index():
         pending_tasks=pending_tasks,
         completed_tasks=completed_tasks,
         status_filter=status_filter,
-        priority_filter=priority_filter,
         Task=Task
     )
 
@@ -57,7 +52,6 @@ def create():
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
-        priority = request.form.get('priority', Task.PRIORITY_MEDIUM)
         category = request.form.get('category', 'Other')
         deadline_str = request.form.get('deadline', '')
         
@@ -85,7 +79,6 @@ def create():
             new_task.user_id = str(current_user.id)
             new_task.title = title
             new_task.description = description
-            new_task.priority = priority
             new_task.category = category
             new_task.deadline = deadline
             new_task.status = Task.STATUS_PENDING
@@ -125,7 +118,6 @@ def edit(task_id):
         # Update task fields
         task.title = request.form.get('title', '').strip()
         task.description = request.form.get('description', '').strip()
-        task.priority = request.form.get('priority', Task.PRIORITY_MEDIUM)
         task.category = request.form.get('category', 'Other')
         
         # Handle custom category
@@ -208,7 +200,6 @@ def api_tasks():
                 {
                     'id': t.id,
                     'title': t.title,
-                    'priority': t.priority,
                     'status': t.status,
                     'deadline': t.deadline,
                     'category': t.category
@@ -219,18 +210,37 @@ def api_tasks():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@tasks_bp.route('/api/<task_id>/complete', methods=['POST'])
+@tasks_bp.route('/<task_id>/complete', methods=['POST'])
 @login_required
-def api_complete_task(task_id):
-    """API endpoint to mark task as complete"""
+def complete_task(task_id):
+    """Mark a task as completed - JSON API endpoint"""
     try:
         task = Task.get_by_id(task_id)
         if not task or str(task.user_id) != str(current_user.id):
             return jsonify({'success': False, 'error': 'Task not found'}), 404
         
-        task.status = Task.STATUS_COMPLETED
-        task.completed_at = datetime.utcnow().isoformat()
-        task.save()
+        if task.status != Task.STATUS_COMPLETED:
+            task.status = Task.STATUS_COMPLETED
+            task.completed_at = datetime.utcnow().isoformat()
+            task.save()
+        
+        return jsonify({'success': True, 'message': 'Task marked as completed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@tasks_bp.route('/api/<task_id>/complete', methods=['POST'])
+@login_required
+def api_complete_task(task_id):
+    """API endpoint to mark task as complete (alias for /tasks/<task_id>/complete)"""
+    try:
+        task = Task.get_by_id(task_id)
+        if not task or str(task.user_id) != str(current_user.id):
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        if task.status != Task.STATUS_COMPLETED:
+            task.status = Task.STATUS_COMPLETED
+            task.completed_at = datetime.utcnow().isoformat()
+            task.save()
         
         return jsonify({'success': True, 'message': 'Task completed'})
     except Exception as e:

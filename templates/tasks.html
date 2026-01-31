@@ -14,6 +14,42 @@
         </div>
     </div>
 
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted mb-2">Total Tasks</h6>
+                    <h2 class="display-4 text-primary mb-0">{{ tasks|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted mb-2">Pending</h6>
+                    <h2 class="display-4 text-warning mb-0">{{ pending_tasks|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted mb-2">Overdue</h6>
+                    <h2 class="display-4 text-danger mb-0">{{ overdue_tasks|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted mb-2">Completed</h6>
+                    <h2 class="display-4 text-success mb-0">{{ completed_tasks|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="row mb-4">
         <div class="col-md-12">
@@ -28,22 +64,9 @@
                                     <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
                                     <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
                                 </select>
-                                <input type="hidden" name="priority" value="{{ priority_filter }}">
                             </form>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Filter by Priority</label>
-                            <form method="GET" class="d-flex gap-2">
-                                <select class="form-select" name="priority" onchange="this.form.submit()">
-                                    <option value="all" {% if priority_filter == 'all' %}selected{% endif %}>All Priorities</option>
-                                    <option value="High" {% if priority_filter == 'High' %}selected{% endif %}>🔴 High</option>
-                                    <option value="Medium" {% if priority_filter == 'Medium' %}selected{% endif %}>🟡 Medium</option>
-                                    <option value="Low" {% if priority_filter == 'Low' %}selected{% endif %}>🟢 Low</option>
-                                </select>
-                                <input type="hidden" name="status" value="{{ status_filter }}">
-                            </form>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-8">
                             <p class="text-muted">
                                 <strong>Total Tasks:</strong> {{ tasks|length }} | 
                                 <strong>Overdue:</strong> {{ overdue_tasks|length }} |
@@ -69,9 +92,6 @@
                         {% for task in overdue_tasks %}
                         <div class="list-group-item">
                             <div class="row align-items-center">
-                                <div class="col-1">
-                                    <input type="checkbox" class="form-check-input" id="task-{{ task.id }}" style="cursor: pointer; width: 20px; height: 20px;" onclick="toggleTaskStatus({{ task.id }})">
-                                </div>
                                 <div class="col-md-7">
                                     <h6 class="mb-1">{{ task.title }}</h6>
                                     <p class="text-muted mb-0 small">{{ task.description }}</p>
@@ -79,13 +99,13 @@
                                         <strong>Deadline:</strong> {{ task.deadline.strftime('%Y-%m-%d') if task.deadline else 'N/A' }}
                                     </small>
                                 </div>
-                                <div class="col-md-4 text-end">
-                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %} me-2">
-                                        {{ task.priority }}
-                                    </span>
-                                    <span class="badge bg-secondary">{{ task.category }}</span>
+                                <div class="col-md-5 text-end">
+                                    <span class="badge bg-secondary me-2">{{ task.category }}</span>
                                     <div class="mt-2">
-                                        <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <button type="button" class="btn btn-sm btn-success me-1" onclick="markTaskComplete('{{ task.id }}', this)" id="complete-{{ task.id }}">
+                                            Mark as Completed
+                                        </button>
+                                        <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
                                         <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this task?')">Delete</button>
                                         </form>
@@ -114,9 +134,6 @@
                         {% for task in pending_tasks %}
                         <div class="list-group-item">
                             <div class="row align-items-center">
-                                <div class="col-1">
-                                    <input type="checkbox" class="form-check-input" id="task-{{ task.id }}" style="cursor: pointer; width: 20px; height: 20px;" onclick="toggleTaskStatus({{ task.id }})">
-                                </div>
                                 <div class="col-md-7">
                                     <h6 class="mb-1">{{ task.title }}</h6>
                                     <p class="text-muted mb-0 small">{{ task.description }}</p>
@@ -127,13 +144,13 @@
                                         {% endif %}
                                     </small>
                                 </div>
-                                <div class="col-md-4 text-end">
-                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}success{% endif %} me-2">
-                                        {{ task.priority }}
-                                    </span>
-                                    <span class="badge bg-secondary">{{ task.category }}</span>
+                                <div class="col-md-5 text-end">
+                                    <span class="badge bg-secondary me-2">{{ task.category }}</span>
                                     <div class="mt-2">
-                                        <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <button type="button" class="btn btn-sm btn-success me-1" onclick="markTaskComplete('{{ task.id }}', this)" id="complete-{{ task.id }}">
+                                            Mark as Completed
+                                        </button>
+                                        <a href="{{ url_for('tasks.edit', task_id=task.id) }}" class="btn btn-sm btn-outline-primary me-1">Edit</a>
                                         <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this task?')">Delete</button>
                                         </form>
@@ -162,16 +179,16 @@
                         {% for task in completed_tasks %}
                         <div class="list-group-item text-muted" style="opacity: 0.7;">
                             <div class="row align-items-center">
-                                <div class="col-1">
-                                    <input type="checkbox" class="form-check-input" id="task-{{ task.id }}" checked style="cursor: pointer; width: 20px; height: 20px;" onclick="toggleTaskStatus({{ task.id }})">
-                                </div>
                                 <div class="col-md-7">
                                     <h6 class="mb-1" style="text-decoration: line-through;">{{ task.title }}</h6>
                                     <small>Completed on: {{ task.completed_at.strftime('%Y-%m-%d') if task.completed_at else 'Unknown' }}</small>
                                 </div>
-                                <div class="col-md-4 text-end">
-                                    <span class="badge bg-secondary">{{ task.category }}</span>
+                                <div class="col-md-5 text-end">
+                                    <span class="badge bg-secondary me-2">{{ task.category }}</span>
                                     <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-secondary" disabled id="complete-{{ task.id }}">
+                                            ✓ Completed
+                                        </button>
                                         <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline;">
                                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this task?')">Delete</button>
                                         </form>
@@ -198,8 +215,12 @@
 </div>
 
 <script>
-function toggleTaskStatus(taskId) {
-    fetch(`/tasks/${taskId}/toggle`, {
+function markTaskComplete(taskId, button) {
+    // Disable button immediately to prevent double-clicks
+    button.disabled = true;
+    button.textContent = 'Processing...';
+    
+    fetch(`/tasks/api/${taskId}/complete`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -208,27 +229,38 @@ function toggleTaskStatus(taskId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Show success message and reload
+            // Update button appearance
+            button.textContent = '✓ Completed';
+            button.classList.remove('btn-success');
+            button.classList.add('btn-secondary');
+            
+            // Show success alert
             const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show';
-            alertDiv.setAttribute('role', 'alert');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
             alertDiv.innerHTML = `
-                ${data.message}
+                Task marked as completed!
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+            document.body.appendChild(alertDiv);
             
-            // Reload page after 1 second
+            // Reload page after 1.5 seconds
             setTimeout(() => {
                 location.reload();
-            }, 1000);
+            }, 1500);
         } else {
-            alert('Error toggling task status: ' + (data.error || 'Unknown error'));
+            // Re-enable button on error
+            button.disabled = false;
+            button.textContent = 'Mark as Completed';
+            alert('Error marking task complete: ' + (data.error || 'Unknown error'));
         }
     })
     .catch(error => {
+        // Re-enable button on error
+        button.disabled = false;
+        button.textContent = 'Mark as Completed';
         console.error('Error:', error);
-        alert('Failed to toggle task status');
+        alert('Failed to mark task complete');
     });
 }
 </script>

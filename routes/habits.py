@@ -383,6 +383,84 @@ def resume_habit(habit_id):
     
     return redirect(url_for('habits.index'))
 
+@habits_bp.route('/<habit_id>/calendar', methods=['GET'])
+@login_required
+def calendar_view(habit_id):
+    """
+    Display individual calendar view for a specific habit
+    Supports Daily, Weekly, and Monthly habits with color-coded completion status
+    Calendar timeline starts from habit creation date
+    """
+    from datetime import datetime
+    
+    habit = Habit.get_by_id(habit_id)
+    
+    if not habit or str(habit.user_id) != str(current_user.id):
+        flash('Habit not found!', 'error')
+        return redirect(url_for('habits.index'))
+    
+    # Parse habit creation date (supports created_at/createdAt/creationTimestamp)
+    creation_date = habit.get_creation_date()
+    
+    # Get year and month parameters (default to current)
+    year = request.args.get('year', datetime.utcnow().year, type=int)
+    month = request.args.get('month', datetime.utcnow().month, type=int)
+    
+    # Validate month and year
+    if month < 1 or month > 12:
+        month = datetime.utcnow().month
+    if year < 2020 or year > 2030:
+        year = datetime.utcnow().year
+    
+    # Ensure calendar does not go before habit creation date
+    # If requested month/year is before creation, show creation month instead
+    requested_date = datetime(year, month, 1).date()
+    creation_month_date = datetime(creation_date.year, creation_date.month, 1).date()
+    
+    if requested_date < creation_month_date:
+        year = creation_date.year
+        month = creation_date.month
+    
+    # Get calendar data with color coding and creation date boundary
+    calendar_data = habit.get_calendar_data(year, month, creation_date)
+    
+    # Get habit completion statistics
+    completions = HabitCompletion.query_by_habit(habit_id)
+    
+    # Calculate next/previous month links
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+    
+    if month == 12:
+        next_month = 1
+        next_year = year + 1
+    else:
+        next_month = month + 1
+        next_year = year
+    
+    # Determine if previous button should be disabled (at creation month)
+    is_at_creation_month = (year == creation_date.year and month == creation_date.month)
+    
+    return render_template(
+        'habit_calendar.html',
+        habit=habit,
+        calendar=calendar_data,
+        completions=completions,
+        year=year,
+        month=month,
+        prev_month=prev_month,
+        prev_year=prev_year,
+        next_month=next_month,
+        next_year=next_year,
+        creation_date=creation_date,
+        is_at_creation_month=is_at_creation_month,
+        Habit=Habit
+    )
+
 @habits_bp.route('/api/habits')
 @login_required
 def api_habits():

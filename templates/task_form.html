@@ -28,17 +28,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="priority" class="form-label">Priority *</label>
-                                    <select class="form-select" id="priority" name="priority" required>
-                                        <option value="Low" {% if task and task.priority == 'Low' %}selected{% elif not task %}{% endif %}>🟢 Low</option>
-                                        <option value="Medium" {% if task and task.priority == 'Medium' %}selected{% elif not task %}selected{% endif %}>🟡 Medium</option>
-                                        <option value="High" {% if task and task.priority == 'High' %}selected{% endif %}>🔴 High</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="mb-3">
                                     <label for="category" class="form-label">Category *</label>
                                     <div class="input-group">
@@ -60,7 +50,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="mb-3">
                                     <label for="deadline" class="form-label">Deadline (Optional)</label>
                                     <input type="datetime-local" class="form-control" id="deadline" name="deadline"
@@ -68,7 +58,7 @@
                                 </div>
                             </div>
                             {% if task %}
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="mb-3">
                                     <label for="status" class="form-label">Status *</label>
                                     <select class="form-select" id="status" name="status" required>

@@ -56,6 +56,19 @@ from models.firebase_models import User, Task, Expense, Habit, HabitCompletion
 app = Flask(__name__)
 app.config.from_object(config)
 
+# Log SMTP configuration (excluding password)
+print(f"\n{'='*60}")
+print(f"📧 EMAIL CONFIGURATION")
+print(f"{'='*60}")
+print(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
+print(f"MAIL_PORT: {app.config.get('MAIL_PORT')}")
+print(f"MAIL_USE_TLS: {app.config.get('MAIL_USE_TLS')}")
+print(f"MAIL_USE_SSL: {app.config.get('MAIL_USE_SSL')}")
+print(f"MAIL_USERNAME: {'SET ✅' if app.config.get('MAIL_USERNAME') else '❌ NOT SET'}")
+print(f"MAIL_PASSWORD: {'SET ✅' if app.config.get('MAIL_PASSWORD') else '❌ NOT SET'}")
+print(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
+print(f"{'='*60}\n")
+
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)

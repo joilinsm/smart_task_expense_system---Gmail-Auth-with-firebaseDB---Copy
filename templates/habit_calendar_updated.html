@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ habit.title }} - Calendar View{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with Back Button -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{ url_for('habits.index') }}" class="btn btn-outline-secondary">← Back to Habits</a>
+                <div>
+                    <h1 class="display-5 fw-bold text-primary mb-0">📅 {{ habit.title }}</h1>
+                    <p class="text-muted mb-0">
+                        <strong>Frequency:</strong> {{ habit.frequency }} | 
+                        <strong>Category:</strong> {{ habit.category }} |
+                        <strong>Created:</strong> {{ creation_date.strftime('%b %d, %Y') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('habits.edit', habit_id=habit.id) }}" class="btn btn-primary">✏️ Edit Habit</a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Current Streak</h6>
+                    <h2 class="text-danger">🔥 {{ habit.current_streak }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Longest Streak</h6>
+                    <h2 class="text-warning">⭐ {{ habit.longest_streak }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-info">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Completions</h6>
+                    <h2 class="text-info">✓ {{ completions|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Status</h6>
+                    <h2 class="text-primary">
+                        {% if habit.is_active %}
+                        🟢 Active
+                        {% elif habit.is_completed %}
+                        ✅ Completed
+                        {% else %}
+                        ⏸️ Paused
+                        {% endif %}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Calendar View -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <!-- Previous Month Button (Disabled at creation month) -->
+                        {% if is_at_creation_month %}
+                        <button class="btn btn-sm btn-outline-light" disabled title="Calendar starts from {{ creation_date.strftime('%B %Y') }}">← Previous</button>
+                        {% else %}
+                        <a href="{{ url_for('habits.calendar_view', habit_id=habit.id, year=prev_year, month=prev_month) }}" 
+                           class="btn btn-sm btn-outline-light">← Previous</a>
+                        {% endif %}
+                        
+                        <!-- Month and Year Display -->
+                        <h5 class="mb-0">{{ calendar.month_name }} {{ year }}</h5>
+                        
+                        <!-- Next Month Button -->
+                        <a href="{{ url_for('habits.calendar_view', habit_id=habit.id, year=next_year, month=next_month) }}" 
+                           class="btn btn-sm btn-outline-light">Next →</a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Color Legend -->
+                    <div class="mb-4 p-3 bg-light rounded">
+                        <h6 class="mb-2">Color Legend:</h6>
+                        <div class="d-flex gap-4 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 30px; height: 30px; background-color: #28a745; border-radius: 4px;"></div>
+                                <span class="text-success"><strong>Green:</strong> Completed</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 30px; height: 30px; background-color: #dc3545; border-radius: 4px;"></div>
+                                <span class="text-danger"><strong>Red:</strong> Missed</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 30px; height: 30px; background-color: #e9ecef; border: 1px solid #dee2e6; border-radius: 4px;"></div>
+                                <span class="text-muted"><strong>Gray:</strong> Future Date</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 30px; height: 30px; background-color: #d4d4d4; border: 2px dashed #999; border-radius: 4px;"></div>
+                                <span class="text-muted"><strong>Striped Gray:</strong> Before Creation Date</span>
+                            </div>
+                        </div>
+                        <p class="text-muted small mt-2 mb-0">
+                            <strong>Evaluation Logic:</strong>
+                            {% if habit.frequency == 'Daily' %}
+                            Daily habits show green if completed on that specific date (on or after {{ creation_date.strftime('%b %d, %Y') }}).
+                            {% elif habit.frequency == 'Weekly' %}
+                            Weekly habits show green if completed at least once within that week (Monday-Sunday, starting from creation date).
+                            {% elif habit.frequency == 'Monthly' %}
+                            Monthly habits show green if completed at least once within that month (starting from creation date).
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center">
+                            <!-- Day Headers -->
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 14.28%;">Monday</th>
+                                    <th style="width: 14.28%;">Tuesday</th>
+                                    <th style="width: 14.28%;">Wednesday</th>
+                                    <th style="width: 14.28%;">Thursday</th>
+                                    <th style="width: 14.28%;">Friday</th>
+                                    <th style="width: 14.28%;">Saturday</th>
+                                    <th style="width: 14.28%;">Sunday</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set first_day = calendar.days[0] %}
+                                {% set first_weekday = (first_day.date|string|replace('-', '-')|length) %}
+                                
+                                <!-- Calculate first weekday of month (Monday=0, Sunday=6) -->
+                                {% set ns = namespace(row_open=False, day_count=0, first_dow=0) %}
+                                
+                                <!-- Get first day weekday -->
+                                {% set first_date_obj = first_day.date %}
+                                
+                                <tr>
+                                {% for day in calendar.days %}
+                                    <!-- Calculate day of week (Monday=0) -->
+                                    {% set date_obj = day.date %}
+                                    
+                                    <!-- Determine background color based on habit completion and creation date boundary -->
+                                    {% if day.color == 'green' %}
+                                        {% set bg_color = '#28a745' %}
+                                        {% set text_color = 'white' %}
+                                        {% set border_style = 'solid' %}
+                                    {% elif day.color == 'red' %}
+                                        {% set bg_color = '#dc3545' %}
+                                        {% set text_color = 'white' %}
+                                        {% set border_style = 'solid' %}
+                                    {% elif day.color == 'unavailable' %}
+                                        {% set bg_color = '#d4d4d4' %}
+                                        {% set text_color = '#888' %}
+                                        {% set border_style = 'dashed' %}
+                                    {% else %}
+                                        {% set bg_color = '#e9ecef' %}
+                                        {% set text_color = '#495057' %}
+                                        {% set border_style = 'solid' %}
+                                    {% endif %}
+                                    
+                                    <td style="
+                                        background-color: {{ bg_color }};
+                                        color: {{ text_color }};
+                                        padding: 15px 8px;
+                                        font-weight: 500;
+                                        height: 80px;
+                                        vertical-align: middle;
+                                        {% if day.color == 'unavailable' %}cursor: not-allowed; opacity: 0.6;{% else %}cursor: pointer;{% endif %}
+                                        border: {% if day.color == 'unavailable' %}2px dashed #999{% else %}1px solid #dee2e6{% endif %};
+                                    "
+                                    title="{% if day.color == 'unavailable' %}Before habit creation date{% elif habit.frequency == 'Daily' %}Completed on {{ day.date }}{% elif habit.frequency == 'Weekly' %}Completed in week of {{ day.date }}{% else %}Completed in {{ calendar.month_name }}{% endif %}">
+                                        <strong>{{ day.day }}</strong>
+                                        <div style="font-size: 12px; margin-top: 4px;">
+                                            {% if day.color == 'green' %}
+                                            ✓ Done
+                                            {% elif day.color == 'red' %}
+                                            ✗ Missed
+                                            {% elif day.color == 'unavailable' %}
+                                            —
+                                            {% else %}
+                                            —
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- Check if end of week -->
+                                    {% if loop.index % 7 == 0 and not loop.last %}
+                                </tr>
+                                <tr>
+                                    {% endif %}
+                                {% endfor %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Habit Details and Actions Panel -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">📝 Habit Details</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong></p>
+                    <p>{{ habit.description or 'No description provided.' }}</p>
+                    
+                    <hr>
+                    
+                    <p class="mb-1"><strong>Category:</strong> <span class="badge bg-info">{{ habit.category }}</span></p>
+                    <p class="mb-1"><strong>Frequency:</strong> <span class="badge bg-primary">{{ habit.frequency }}</span></p>
+                    <p class="mb-1"><strong>Status:</strong> 
+                        <span class="badge {% if habit.is_active %}bg-success{% elif habit.is_completed %}bg-info{% else %}bg-warning{% endif %}">
+                            {% if habit.is_active %}Active{% elif habit.is_completed %}Completed{% else %}Paused{% endif %}
+                        </span>
+                    </p>
+                    <p class="mb-1"><strong>Created:</strong>
+                        <span class="badge bg-secondary">
+                            {{ creation_date.strftime('%b %d, %Y') }}
+                        </span>
+                    </p>
+                    
+                    {% if habit.deadline %}
+                    <p class="mb-0"><strong>Deadline:</strong> 
+                        <span class="badge bg-danger">
+                            {{ habit.deadline.strftime('%b %d, %Y') if habit.deadline is not string else habit.deadline[:10] }}
+                        </span>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">⚙️ Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if habit.is_active and not habit.is_completed %}
+                        {% if not habit.is_completed_today() %}
+                        <button onclick="markHabitCompleteToday('{{ habit.id }}', this)" class="btn btn-success">
+                            ✓ Mark Complete Today
+                        </button>
+                        {% else %}
+                        <button class="btn btn-secondary" disabled>✓ Completed Today</button>
+                        {% endif %}
+                        {% endif %}
+                        
+                        {% if habit.is_active and not habit.is_completed %}
+                        <form method="POST" action="{{ url_for('habits.pause_habit', habit_id=habit.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-warning w-100">⏸️ Pause Habit</button>
+                        </form>
+                        {% elif not habit.is_completed %}
+                        <form method="POST" action="{{ url_for('habits.resume_habit', habit_id=habit.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-info w-100">▶️ Resume Habit</button>
+                        </form>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('habits.edit', habit_id=habit.id) }}" class="btn btn-outline-primary">
+                            ✏️ Edit Habit
+                        </a>
+                        
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            🗑️ Delete Habit
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Habit Completion Rate -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📊 Progress</h5>
+                </div>
+                <div class="card-body">
+                    <small class="text-muted">Completion Rate</small>
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ habit.get_completion_percentage() }}%;" 
+                             aria-valuenow="{{ habit.get_completion_percentage()|int }}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                            {{ habit.get_completion_percentage()|int }}%
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0">{{ completions|length }} completions recorded</p>
+                    <p class="text-muted small">Since {{ creation_date.strftime('%b %d, %Y') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">🗑️ Delete Habit</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this habit? This action cannot be undone.</p>
+                <p><strong>Habit:</strong> {{ habit.title }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('habits.delete', habit_id=habit.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">🗑️ Delete Permanently</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function markHabitCompleteToday(habitId, button) {
+    fetch(`/habits/${habitId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.disabled = true;
+            button.textContent = '✓ Completed Today';
+            button.classList.remove('btn-success');
+            button.classList.add('btn-secondary');
+            
+            // Show success alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.innerHTML = `
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            const container = document.querySelector('.container-fluid') || document.body;
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Reload page after 2 seconds to refresh calendar
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to mark habit complete');
+    });
+}
+</script>
+{% endblock %}

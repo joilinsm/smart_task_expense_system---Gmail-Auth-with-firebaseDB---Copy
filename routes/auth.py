@@ -1,10 +1,11 @@
 """
 Authentication routes with Firebase (login, register, logout, email verification)
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from models.firebase_models import User
 from utils.email_sender import send_otp_email, send_verification_reminder_email, send_password_reset_email
+import logging
 
 # Create blueprint
 auth_bp = Blueprint('auth', __name__)
@@ -39,7 +40,7 @@ def register():
             flash('Passwords do not match!', 'error')
             return redirect(url_for('auth.register'))
         
-        # Check if user exists
+        # Check if user exists (must be done before saving)
         if User.query_by_username(username):
             flash('Username already exists!', 'error')
             return redirect(url_for('auth.register'))
@@ -57,6 +58,11 @@ def register():
             new_user.last_name = last_name
             new_user.set_password(password)
             
+            # Final uniqueness check before save to avoid false-positive UI errors
+            if User.query_by_username(username) or User.query_by_email(email):
+                flash('Username or email already exists!', 'error')
+                return redirect(url_for('auth.register'))
+
             # Save to Firebase
             new_user.save()
             
@@ -70,19 +76,26 @@ def register():
             # Send OTP email
             email_sent = send_otp_email(new_user.email, new_user.username, otp_code)
             
-            if email_sent:
-                flash('Registration successful! Please check your email for the verification code.', 'success')
-            else:
-                # Email failed - show OTP in message for debugging
-                flash(f'Registration successful! Email sending failed. OTP Code for testing: {otp_code} (Check Render logs for details)', 'warning')
-                print(f"\n{'='*70}")
-                print(f"⚠️ EMAIL NOT SENT - OTP FOR TESTING")
-                print(f"{'='*70}")
-                print(f"User: {new_user.username}")
-                print(f"Email: {new_user.email}")
-                print(f"OTP Code: {otp_code}")
-                print(f"{'='*70}\n")
+            if not email_sent:
+                # Email failed - show error in production, OTP in development
+                if current_app.config.get('DEBUG'):
+                    flash(f'⚠️ Email sending failed. Debug OTP: {otp_code} (Check console logs)', 'warning')
+                    print(f"\n{'='*70}")
+                    print(f"⚠️ REGISTRATION - EMAIL FAILED (DEBUG MODE)")
+                    print(f"{'='*70}")
+                    print(f"User: {new_user.username}")
+                    print(f"Email: {new_user.email}")
+                    print(f"OTP Code: {otp_code}")
+                    print(f"Action: Check SMTP configuration and credentials")
+                    print(f"{'='*70}\n")
+                else:
+                    flash('Registration failed: Unable to send verification email. Please check your email address or try again later.', 'error')
+                    logging.error(f"Production registration failed - email not sent to {new_user.email}")
+                    # In production, delete the user if email fails
+                    new_user.delete()
+                    return redirect(url_for('auth.register'))
             
+            flash('✅ Registration successful! Please check your email for the verification code.', 'success')
             return redirect(url_for('auth.verify_email'))
         except Exception as e:
             flash(f'Error during registration: {str(e)}', 'error')
@@ -169,6 +182,14 @@ def verify_email():
             flash('Please enter the verification code!', 'error')
             return redirect(url_for('auth.verify_email'))
         
+        print(f"\n{'='*70}")
+        print(f"🔐 OTP VERIFICATION ATTEMPT")
+        print(f"{'='*70}")
+        print(f"User: {user.username} ({user.email})")
+        print(f"Entered OTP: {otp_code}")
+        print(f"OTP Secret Exists: {bool(user.otp_secret)}")
+        print(f"{'='*70}\n")
+        
         if user.verify_otp(otp_code):
             user.email_verified = True
             user.otp_secret = None  # Clear OTP secret after verification
@@ -178,10 +199,10 @@ def verify_email():
             # Clear session
             session.pop('pending_verification_user_id', None)
             
-            flash('Email verified successfully! You can now log in.', 'success')
+            flash('✅ Email verified successfully! You can now log in.', 'success')
             return redirect(url_for('auth.login'))
         else:
-            flash('Invalid or expired verification code! Please try again or request a new code.', 'error')
+            flash('❌ Invalid or expired verification code! Please try again or request a new code.', 'error')
             return redirect(url_for('auth.verify_email'))
     
     return render_template('verify_email.html', user=user)
@@ -213,10 +234,15 @@ def resend_otp():
         user.save()  # Save to Firebase
         
         # Send OTP email
-        if send_otp_email(user.email, user.username, otp_code):
-            flash('New verification code sent to your email!', 'success')
+        email_sent = send_otp_email(user.email, user.username, otp_code)
+        
+        if email_sent:
+            flash('✅ New verification code sent to your email!', 'success')
         else:
-            flash('Verification code generated! Check console in debug mode.', 'warning')
+            if current_app.config.get('DEBUG'):
+                flash(f'⚠️ Email failed. Debug OTP: {otp_code}', 'warning')
+            else:
+                flash('❌ Failed to send verification email. Please try again later.', 'error')
     except Exception as e:
         flash(f'Error sending verification code: {str(e)}', 'error')
     
@@ -240,10 +266,15 @@ def request_verification():
             current_user.save()  # Save to Firebase
             
             # Send OTP email
-            if send_otp_email(current_user.email, current_user.username, otp_code):
-                flash('Verification code sent to your email!', 'success')
+            email_sent = send_otp_email(current_user.email, current_user.username, otp_code)
+            
+            if email_sent:
+                flash('✅ Verification code sent to your email!', 'success')
             else:
-                flash('Verification code generated! Check console in debug mode.', 'warning')
+                if current_app.config.get('DEBUG'):
+                    flash(f'⚠️ Email failed. Debug OTP: {otp_code}', 'warning')
+                else:
+                    flash('❌ Failed to send verification email. Please try again later.', 'error')
             
             return redirect(url_for('auth.verify_email'))
         except Exception as e:

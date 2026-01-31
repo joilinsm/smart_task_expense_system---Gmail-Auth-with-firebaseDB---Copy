@@ -43,7 +43,7 @@ class InsightsGenerator:
     def get_task_insights(self):
         """
         Generate insights about task management
-        Includes: overdue tasks, high-priority tasks, completion rate
+        Includes: overdue tasks, completion rate
         """
         insights = []
         
@@ -53,23 +53,11 @@ class InsightsGenerator:
         if not user_tasks:
             return ["No tasks created yet. Start by adding a task!"]
         
-        # Count overdue high-priority tasks
-        overdue_high_priority = [
-            t for t in user_tasks 
-            if t.is_overdue() and t.priority == Task.PRIORITY_HIGH
-        ]
-        
-        if overdue_high_priority:
-            insights.append(
-                f"⚠️ WARNING: You have {len(overdue_high_priority)} overdue high-priority task(s). "
-                f"Consider completing them urgently!"
-            )
-        
         # Count all overdue tasks
         overdue_tasks = [t for t in user_tasks if t.is_overdue()]
-        if overdue_tasks and overdue_high_priority == []:
+        if overdue_tasks:
             insights.append(
-                f"📌 You have {len(overdue_tasks)} overdue task(s). Please review and complete them."
+                f"⚠️ You have {len(overdue_tasks)} overdue task(s). Please review and complete them."
             )
         
         # Calculate completion rate
@@ -87,18 +75,6 @@ class InsightsGenerator:
         else:
             insights.append(
                 f"📝 Your completion rate is {completion_rate:.0f}%. Try to focus on pending tasks."
-            )
-        
-        # Count high-priority pending tasks
-        pending_high_priority = [
-            t for t in user_tasks 
-            if t.status == Task.STATUS_PENDING and t.priority == Task.PRIORITY_HIGH
-        ]
-        
-        if len(pending_high_priority) >= 3:
-            insights.append(
-                f"🔴 You have {len(pending_high_priority)} high-priority pending tasks. "
-                f"Consider prioritizing these!"
             )
         
         # Tasks due soon (within 3 days)

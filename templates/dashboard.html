@@ -160,9 +160,7 @@
                                             {% endif %}
                                         </small>
                                     </div>
-                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %}">
-                                        {{ task.priority }}
-                                    </span>
+                                    <span class="badge bg-secondary">{{ task.category }}</span>
                                 </li>
                             {% endfor %}
                         </ul>
@@ -174,48 +172,49 @@
         </div>
     </div>
 
-    <!-- Charts Row -->
+    <!-- Charts Row 1 -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">Tasks by Status</h5>
                 </div>
-                <div class="card-body">
-                    <canvas id="taskChart"></canvas>
+                <div class="card-body" style="min-height: 350px; padding: 20px;">
+                    <canvas id="tasksByStatusChart"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Tasks by Priority</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="priorityChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
         <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">Expenses by Category</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="min-height: 350px; padding: 20px;">
                     <canvas id="expenseCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Daily Expense Trend</h5>
+                </div>
+                <div class="card-body" style="min-height: 350px; padding: 20px;">
+                    <canvas id="dailyExpenseTrendChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Monthly Expense Trend</h5>
+                    <h5 class="mb-0">Task Completion Trend (Last 7 Days)</h5>
                 </div>
-                <div class="card-body">
-                    <canvas id="expenseTrendChart"></canvas>
+                <div class="card-body" style="min-height: 350px; padding: 20px;">
+                    <canvas id="taskCompletionTrendChart"></canvas>
                 </div>
             </div>
         </div>
@@ -263,112 +262,331 @@
 
 <!-- Chart Configuration Scripts -->
 <script>
-    // Task Status Chart
-    const taskCtx = document.getElementById('taskChart').getContext('2d');
-    const taskChart = new Chart(taskCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Completed', 'Pending'],
-            datasets: [{
-                data: [{{ completed_tasks }}, {{ pending_tasks }}],
-                backgroundColor: ['#28a745', '#ffc107'],
-                borderColor: '#fff',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
+    // ============ TASKS BY STATUS CHART (Doughnut) ============
+    function initTasksByStatusChart() {
+        // Use server-side data instead of API call
+        const completed = {{ completed_tasks }};
+        const pending = {{ pending_tasks }};
+        const overdue = {{ overdue_tasks }};
+        
+        const ctx = document.getElementById('tasksByStatusChart');
+        if (!ctx) {
+            console.error('Canvas element tasksByStatusChart not found');
+            return;
         }
-    });
-
-    // Priority Chart
-    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
-    const priorityChart = new Chart(priorityCtx, {
-        type: 'bar',
-        data: {
-            labels: ['High', 'Medium', 'Low'],
-            datasets: [{
-                label: 'Tasks',
-                data: [{{ high_priority }}, {{ medium_priority }}, {{ low_priority }}],
-                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8'],
-                borderColor: '#fff',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            indexAxis: 'y',
-            plugins: { legend: { display: false } }
-        }
-    });
-
-    // Expense Category Chart
-    fetch('{{ url_for("dashboard.expense_stats") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (!data.categories || data.categories.length === 0) {
-                document.getElementById('expenseCategoryChart').parentElement.innerHTML = '<p class="text-muted text-center py-4">No expenses recorded yet. Start by adding an expense!</p>';
-                return;
-            }
-            const expenseCtx = document.getElementById('expenseCategoryChart').getContext('2d');
-            new Chart(expenseCtx, {
-                type: 'pie',
-                data: {
-                    labels: data.categories,
-                    datasets: [{
-                        data: data.amounts,
-                        backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1', '#fd7e14'],
-                        borderColor: '#fff',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending', 'Overdue'],
+                datasets: [{
+                    data: [completed, pending, overdue],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 1.5,
+                plugins: {
+                    legend: { 
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                size: 14
+                            },
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        bodyFont: {
+                            size: 14
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
                 }
-            });
-        })
-        .catch(error => {
-            console.error('Error loading expense stats:', error);
-            document.getElementById('expenseCategoryChart').parentElement.innerHTML = '<p class="text-danger text-center py-4">Error loading expense data</p>';
-        });
-
-    // Monthly Expense Trend Chart
-    fetch('{{ url_for("dashboard.monthly_trend") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (!data.months || data.months.length === 0) {
-                document.getElementById('expenseTrendChart').parentElement.innerHTML = '<p class="text-muted text-center py-4">No expense history available yet.</p>';
-                return;
             }
-            const trendCtx = document.getElementById('expenseTrendChart').getContext('2d');
-            new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: data.months,
-                    datasets: [{
-                        label: 'Spending ($)',
-                        data: data.amounts,
-                        borderColor: '#007bff',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Error loading monthly trends:', error);
-            document.getElementById('expenseTrendChart').parentElement.innerHTML = '<p class="text-danger text-center py-4">Error loading trend data</p>';
         });
+    }
+
+    // ============ EXPENSES BY CATEGORY CHART (Pie) ============
+    function initExpensesCategoryChart() {
+        fetch('{{ url_for("dashboard.expense_stats") }}')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Expense stats data:', data);
+                if (data.error) {
+                    console.error('API Error:', data.error);
+                    return;
+                }
+                if (!data.categories || Object.keys(data.categories).length === 0) {
+                    console.warn('No expense categories found');
+                    const container = document.getElementById('expenseCategoryChart').parentElement;
+                    container.innerHTML = '<p class="text-muted text-center py-4">No expenses recorded yet. Start by adding an expense!</p>';
+                    return;
+                }
+                const categories = Object.keys(data.categories);
+                const amounts = Object.values(data.categories);
+                const colors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'];
+                
+                const ctx = document.getElementById('expenseCategoryChart');
+                if (!ctx) {
+                    console.error('Canvas element expenseCategoryChart not found');
+                    return;
+                }
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: categories,
+                        datasets: [{
+                            data: amounts,
+                            backgroundColor: colors.slice(0, categories.length),
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1.5,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        size: 14
+                                    },
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                bodyFont: {
+                                    size: 14
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed || 0;
+                                        return `₹${value.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading expense stats:', error);
+            });
+    }
+
+    // ============ DAILY EXPENSE TREND CHART (Line) ============
+    function initDailyTrendChart() {
+        fetch('{{ url_for("dashboard.daily_trend") }}')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Daily trend data:', data);
+                if (data.error) {
+                    console.error('API Error:', data.error);
+                    return;
+                }
+                if (!data.days || data.days.length === 0) {
+                    console.warn('No daily trend data found');
+                    const container = document.getElementById('dailyExpenseTrendChart').parentElement;
+                    container.innerHTML = '<p class="text-muted text-center py-4">No expense history available yet.</p>';
+                    return;
+                }
+                const ctx = document.getElementById('dailyExpenseTrendChart');
+                if (!ctx) {
+                    console.error('Canvas element dailyExpenseTrendChart not found');
+                    return;
+                }
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.days,
+                        datasets: [{
+                            label: 'Daily Spending (₹)',
+                            data: data.amounts || [],
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#007bff',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1.8,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        size: 14
+                                    },
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                bodyFont: {
+                                    size: 14
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed.y || 0;
+                                        return `₹${value.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    callback: function(value) {
+                                        return '₹' + value.toFixed(0);
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading daily trends:', error);
+            });
+    }
+
+    // ============ TASK COMPLETION TREND CHART (Line) ============
+    function initTaskCompletionTrendChart() {
+        fetch('{{ url_for("dashboard.task_completion_trend") }}')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Task completion trend data:', data);
+                if (data.error) {
+                    console.error('API Error:', data.error);
+                    return;
+                }
+                if (!data.labels || data.labels.length === 0) {
+                    console.warn('No task completion data found');
+                    const container = document.getElementById('taskCompletionTrendChart').parentElement;
+                    container.innerHTML = '<p class="text-muted text-center py-4">No completed tasks in the last 7 days.</p>';
+                    return;
+                }
+                const ctx = document.getElementById('taskCompletionTrendChart');
+                if (!ctx) {
+                    console.error('Canvas element taskCompletionTrendChart not found');
+                    return;
+                }
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Tasks Completed',
+                            data: data.data || [],
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#28a745',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1.8,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        size: 14
+                                    },
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                bodyFont: {
+                                    size: 14
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed.y || 0;
+                                        return `${value} task${value !== 1 ? 's' : ''} completed`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return Number.isInteger(value) ? value : '';
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading task completion trend:', error);
+            });
+    }
+
+    // Initialize all charts when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing charts...');
+        initTasksByStatusChart();
+        initExpensesCategoryChart();
+        initDailyTrendChart();
+        initTaskCompletionTrendChart();
+    });
 
     // Mark habit complete on dashboard
     function markHabitCompleteDashboard(habitId, button) {

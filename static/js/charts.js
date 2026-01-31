@@ -4,9 +4,9 @@
    Uses Chart.js for visualizations
 */
 
-// Utility function to format currency
+// Utility function to format currency (INR)
 function formatCurrency(amount) {
-    return '$' + parseFloat(amount).toFixed(2);
+    return '₹' + parseFloat(amount).toFixed(2);
 }
 
 // Chart color palette

@@ -55,7 +55,7 @@
                 </div>
                 {% endif %}
                 <div class="d-flex gap-2">
-                    <a class="btn btn-outline-primary" href="{{ url_for('profile.manage_preferences') }}">Edit Preferences</a>
+                    <a class="btn btn-outline-primary" href="{{ url_for('profile.preferences') }}">Edit Preferences</a>
                     <a class="btn btn-outline-secondary" href="{{ url_for('profile.change_password') }}">Change Password</a>
                 </div>
             </div>
@@ -65,9 +65,6 @@
         <div class="card shadow-sm mb-3">
             <div class="card-header bg-light fw-bold">Preferences</div>
             <div class="card-body">
-                <p class="mb-1 text-muted">Default Task Priority</p>
-                <p class="fw-bold">{{ user.default_task_priority }}</p>
-
                 <p class="mb-1 text-muted">Monthly Budget</p>
                 <p class="fw-bold">₹{{ '%.2f'|format(user.monthly_budget or 0) }}</p>
 
@@ -77,7 +74,7 @@
                 <p class="mb-1 text-muted">Notifications</p>
                 <p class="fw-bold">{{ 'Enabled' if user.notification_enabled else 'Disabled' }}</p>
 
-                <a class="btn btn-primary w-100" href="{{ url_for('profile.manage_preferences') }}">Update Preferences</a>
+                <a class="btn btn-primary w-100" href="{{ url_for('profile.preferences') }}">Update Preferences</a>
             </div>
         </div>
         <div class="card shadow-sm">

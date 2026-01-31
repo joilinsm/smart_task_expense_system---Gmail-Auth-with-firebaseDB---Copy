@@ -106,15 +106,15 @@ def edit_profile():
 @login_required
 def preferences():
     """
-    Manage user preferences (theme, priority, notifications) - Firebase version
+    Manage user preferences (theme, notifications) - Firebase version
     """
+    theme_choices = ['blue', 'green', 'red', 'purple', 'orange']
+    
     if request.method == 'POST':
-        default_task_priority = request.form.get('default_task_priority', 'Medium')
         theme_preference = request.form.get('theme_preference', 'blue')
         notification_enabled = request.form.get('notification_enabled') == 'on'
         
         try:
-            current_user.default_task_priority = default_task_priority
             current_user.theme_preference = theme_preference
             current_user.notification_enabled = notification_enabled
             current_user.save()
@@ -125,7 +125,11 @@ def preferences():
             flash(f'Error updating preferences: {str(e)}', 'error')
             return redirect(url_for('profile.preferences'))
     
-    return render_template('preferences.html', user=current_user)
+    return render_template(
+        'preferences.html',
+        user=current_user,
+        theme_choices=theme_choices
+    )
 
 @profile_bp.route('/change-password', methods=['GET', 'POST'])
 @login_required
