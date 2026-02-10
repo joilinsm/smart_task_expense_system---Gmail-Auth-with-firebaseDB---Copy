@@ -122,7 +122,17 @@ def login():
             if not user.email_verified:
                 # Store user ID for verification redirect
                 session['pending_verification_user_id'] = user.id
-                flash('Please verify your email before logging in. Check your inbox for the verification code.', 'warning')
+                try:
+                    otp_code = user.generate_otp()
+                    user.save()
+                    email_sent = send_otp_email(user.email, user.username, otp_code)
+                    if email_sent:
+                        flash('Please verify your email. A new OTP was sent to your inbox.', 'warning')
+                    else:
+                        flash(f'Email sending failed. Your OTP code is: {otp_code} (Valid for 10 minutes)', 'warning')
+                        logging.warning(f"Login OTP email failed for {user.email} - OTP: {otp_code}")
+                except Exception as e:
+                    flash(f'Error sending verification code: {str(e)}', 'error')
                 return redirect(url_for('auth.verify_email'))
 
             login_user(user, remember=request.form.get('remember_me'))
