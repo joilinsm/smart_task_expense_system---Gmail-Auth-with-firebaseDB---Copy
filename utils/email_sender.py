@@ -202,9 +202,12 @@ def send_otp_email_async(user_email, username, otp_code):
     Send OTP email in a background thread to avoid blocking the request.
     Returns the thread object so callers can optionally inspect it.
     """
+    app = current_app._get_current_object()
+
     def _send():
         try:
-            send_otp_email(user_email, username, otp_code)
+            with app.app_context():
+                send_otp_email(user_email, username, otp_code)
         except Exception:
             # Background errors are logged inside send_otp_email
             pass
