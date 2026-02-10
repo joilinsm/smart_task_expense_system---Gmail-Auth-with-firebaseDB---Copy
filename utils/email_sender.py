@@ -3,6 +3,7 @@ Email utility for sending OTP verification emails
 Uses Python's built-in smtplib for email sending
 """
 import smtplib
+import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import current_app
@@ -161,6 +162,23 @@ Smart Task & Expense Team
         print(f"{'='*60}\n")
         logging.error(f"SMTP auth error sending to {user_email}: {error_msg}")
         return False
+
+
+def send_otp_email_async(user_email, username, otp_code):
+    """
+    Send OTP email in a background thread to avoid blocking the request.
+    Returns the thread object so callers can optionally inspect it.
+    """
+    def _send():
+        try:
+            send_otp_email(user_email, username, otp_code)
+        except Exception:
+            # Background errors are logged inside send_otp_email
+            pass
+
+    thread = threading.Thread(target=_send, daemon=True)
+    thread.start()
+    return thread
         
     except smtplib.SMTPException as e:
         error_msg = f"SMTP error: {str(e)}"
