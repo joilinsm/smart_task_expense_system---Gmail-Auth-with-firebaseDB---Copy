@@ -32,7 +32,7 @@ def send_otp_email(user_email, username, otp_code):
         
         # Debug: Log email attempt
         print(f"\n{'='*60}")
-        print(f"📧 ATTEMPTING TO SEND OTP EMAIL")
+        print("📧 ATTEMPTING TO SEND OTP EMAIL")
         print(f"{'='*60}")
         print(f"To: {user_email}")
         print(f"Username: {username}")
@@ -123,27 +123,27 @@ Smart Task & Expense Team
             server = smtplib.SMTP(mail_server, mail_port, timeout=30)
             server.set_debuglevel(0)  # Set to 1 for verbose SMTP debugging
             
-            print(f"Connection established. Starting TLS...")
+            print("Connection established. Starting TLS...")
             if mail_use_tls:
                 server.starttls()  # Enable TLS encryption
-                print(f"TLS enabled successfully")
+                print("TLS enabled successfully")
             
             print(f"Logging in as {mail_username}...")
             server.login(mail_username, mail_password)
-            print(f"Login successful")
+            print("Login successful")
             
-            print(f"Sending message...")
+            print("Sending message...")
             server.send_message(msg)
-            print(f"Message sent successfully")
+            print("Message sent successfully")
             
         finally:
             if server:
                 server.quit()
-                print(f"Connection closed")
+                print("Connection closed")
         
         # Success message
         print(f"\n{'='*60}")
-        print(f"✅ EMAIL SENT SUCCESSFULLY")
+        print("✅ EMAIL SENT SUCCESSFULLY")
         print(f"{'='*60}")
         print(f"To: {user_email}")
         print(f"OTP: {otp_code}")
@@ -155,12 +155,45 @@ Smart Task & Expense Team
     except smtplib.SMTPAuthenticationError as e:
         error_msg = f"SMTP Authentication failed: {str(e)}. Check MAIL_USERNAME and MAIL_PASSWORD. For Gmail, use App Password."
         print(f"\n{'='*60}")
-        print(f"❌ SMTP AUTHENTICATION ERROR")
+        print("❌ SMTP AUTHENTICATION ERROR")
         print(f"{'='*60}")
         print(f"Error: {error_msg}")
         print(f"Recipient: {user_email}")
         print(f"{'='*60}\n")
         logging.error(f"SMTP auth error sending to {user_email}: {error_msg}")
+        return False
+
+    except smtplib.SMTPException as e:
+        error_msg = f"SMTP error: {str(e)}"
+        print(f"\n{'='*60}")
+        print("❌ SMTP ERROR")
+        print(f"{'='*60}")
+        print(f"Error: {error_msg}")
+        print(f"Recipient: {user_email}")
+        print(f"{'='*60}\n")
+        logging.error(f"SMTP error sending to {user_email}: {error_msg}")
+        return False
+        
+    except Exception as e:
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"\n{'='*60}")
+        print("❌ EMAIL SENDING FAILED")
+        print(f"{'='*60}")
+        print(f"Error: {error_msg}")
+        print(f"Recipient: {user_email}")
+        print(f"SMTP: {mail_server}:{mail_port}")
+        print(f"{'='*60}\n")
+        logging.error(f"Failed to send OTP email to {user_email}: {error_msg}")
+        
+        # In development, print OTP to console for testing
+        if current_app.config.get('DEBUG'):
+            print(f"\n{'='*60}")
+            print("🔐 DEBUG MODE - OTP CODE (EMAIL FAILED)")
+            print(f"{'='*60}")
+            print(f"User: {username} ({user_email})")
+            print(f"OTP CODE: {otp_code}")
+            print("Valid for: 10 minutes")
+            print(f"{'='*60}\n")
         return False
 
 
@@ -179,39 +212,6 @@ def send_otp_email_async(user_email, username, otp_code):
     thread = threading.Thread(target=_send, daemon=True)
     thread.start()
     return thread
-        
-    except smtplib.SMTPException as e:
-        error_msg = f"SMTP error: {str(e)}"
-        print(f"\n{'='*60}")
-        print(f"❌ SMTP ERROR")
-        print(f"{'='*60}")
-        print(f"Error: {error_msg}")
-        print(f"Recipient: {user_email}")
-        print(f"{'='*60}\n")
-        logging.error(f"SMTP error sending to {user_email}: {error_msg}")
-        return False
-        
-    except Exception as e:
-        error_msg = f"{type(e).__name__}: {str(e)}"
-        print(f"\n{'='*60}")
-        print(f"❌ EMAIL SENDING FAILED")
-        print(f"{'='*60}")
-        print(f"Error: {error_msg}")
-        print(f"Recipient: {user_email}")
-        print(f"SMTP: {mail_server}:{mail_port}")
-        print(f"{'='*60}\n")
-        logging.error(f"Failed to send OTP email to {user_email}: {error_msg}")
-        
-        # In development, print OTP to console for testing
-        if current_app.config.get('DEBUG'):
-            print(f"\n{'='*60}")
-            print(f"🔐 DEBUG MODE - OTP CODE (EMAIL FAILED)")
-            print(f"{'='*60}")
-            print(f"User: {username} ({user_email})")
-            print(f"OTP CODE: {otp_code}")
-            print(f"Valid for: 10 minutes")
-            print(f"{'='*60}\n")
-        return False
 
 
 def send_verification_reminder_email(user_email, username):
