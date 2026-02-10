@@ -9,6 +9,31 @@ from models.firebase_models import Habit, HabitCompletion
 # Create blueprint
 habits_bp = Blueprint('habits', __name__, url_prefix='/habits')
 
+def _parse_completion_date(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00')).date()
+        except (ValueError, TypeError):
+            return None
+    if hasattr(value, 'date'):
+        try:
+            return value.date()
+        except Exception:
+            return None
+    return None
+
+def _get_latest_completion_date(completions, today):
+    latest = None
+    for completion in completions:
+        comp_date = _parse_completion_date(getattr(completion, 'completion_date', None))
+        if comp_date and comp_date < today and (latest is None or comp_date > latest):
+            latest = comp_date
+    return latest
+
 @habits_bp.route('/')
 @login_required
 def index():
@@ -192,6 +217,10 @@ def mark_complete(habit_id):
         if habit.is_completed_today():
             flash('Already completed today!', 'info')
             return redirect(url_for('habits.index'))
+
+        today = datetime.utcnow().date()
+        completions = HabitCompletion.query_by_habit(habit_id)
+        last_completion_date = _get_latest_completion_date(completions, today)
         
         # Create completion record
         completion = HabitCompletion()
@@ -203,8 +232,13 @@ def mark_complete(habit_id):
             completion.notes = notes
         completion.save()
         
-        # Update streak
-        habit.current_streak += 1
+        # Update streak with missed-day reset
+        current_streak = int(habit.current_streak) if habit.current_streak is not None else 0
+        if last_completion_date is None:
+            habit.current_streak = 1
+        else:
+            gap_days = (today - last_completion_date).days
+            habit.current_streak = current_streak + 1 if gap_days == 1 else 1
         if habit.current_streak > habit.longest_streak:
             habit.longest_streak = habit.current_streak
         habit.save()
@@ -278,6 +312,7 @@ def toggle_completion(habit_id):
         else:
             # Not completed today - add completion and increase streak
             print(f"🔷 Adding new completion, streak before: {habit.current_streak}")
+            last_completion_date = _get_latest_completion_date(completions, today)
             completion = HabitCompletion()
             completion.habit_id = str(habit_id)
             completion.user_id = str(current_user.id)
@@ -287,7 +322,11 @@ def toggle_completion(habit_id):
             
             # Ensure current_streak is a number
             current_streak = int(habit.current_streak) if habit.current_streak is not None else 0
-            habit.current_streak = current_streak + 1
+            if last_completion_date is None:
+                habit.current_streak = 1
+            else:
+                gap_days = (today - last_completion_date).days
+                habit.current_streak = current_streak + 1 if gap_days == 1 else 1
             if habit.current_streak > (habit.longest_streak or 0):
                 habit.longest_streak = habit.current_streak
             print(f"🔷 Streak after: {habit.current_streak}")

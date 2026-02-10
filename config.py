@@ -69,8 +69,8 @@ class Config:
     
     # Set values with development fallbacks
     MAIL_USERNAME = _mail_username or 'externalverseforu@gmail.com'
-    MAIL_PASSWORD = _mail_password or 'ouil rgry mevx awzi'
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', _mail_username or 'noreply@taskexpense.com')
+    MAIL_PASSWORD = _mail_password or 'ouilrgrymevxawzi'
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', _mail_username or 'externalverseforu@gmail.com')
     
     # Additional settings
     MAIL_MAX_EMAILS = None
